@@ -3,7 +3,7 @@ library(ggplot2)
 library(readxl)
 
 # Read the data from the Excel file
-data <- read_excel("~/Desktop/PLOS_PATHOGENS_NEW2.xlsx")
+data <- read_excel("~/Desktop/NEW2.xlsx")
 
 # Plotting the data with increased text size
 ggplot(data, aes(x = log2FoldChange, y = reorder(Functions, log2FoldChange))) + 
