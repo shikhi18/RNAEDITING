@@ -75,29 +75,4 @@ numbering that does not match the full spliced transcript, discovered via
 the HGVS.p cross-validation step failing for the majority of sites until
 this was worked around).
 
-## Key validation checks performed
 
-- **Every extracted codon is cross-checked against SnpEff's own HGVS.p
-  amino-acid call** for the same site before being reported. Sites that
-  don't reproduce SnpEff's own translation are dropped rather than kept.
-  For MI and MVLG this passed with 0 mismatches out of 1,199 and 6,911
-  sites checked respectively.
-- **RSCU values were spot-checked by hand** against raw codon counts.
-- **The RSCU table was rebuilt using only canonical transcripts** (excluding
-  alternative isoforms) to rule out double-counting bias; results were
-  unchanged.
-- **Strand handling was confirmed directly** using known + and − strand
-  genomic examples and checking they resolved to the expected
-  transcript-relative HGVS.c.
-
-## Notes on M. superbum
-
-There is no public reference genome/annotation for M. superbum. This
-analysis used, in order of preference: (1) ~24,500 individual pre-extracted
-per-transcript coding sequences in SnapGene `.dna` format (decoded directly
-by `codon_utils.parse_snapgene_dna`), cross-validated against (2) the
-source genome FASTA + the full AUGUSTUS gene-model BED file, spliced
-in-house. Both methods were confirmed to produce byte-identical sequences
-for the genes checked. See Methods section A.7 for the coordinate-system
-issue found in the associated SnpEff annotation tables and how it was
-resolved.
