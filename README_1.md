@@ -1,4 +1,4 @@
-# RNA Editing Analysis — *Microbotryum intermedium*
+# RNA Editing Analysis — *Microbotryum*
 
 Scripts and pipeline documentation for an RNA-editing study in *Microbotryum
 intermedium* (anther-smut fungus), covering RNA-seq processing, GATK-based
@@ -58,21 +58,3 @@ to real paths in this repo; use the file list below instead.
 `GATK` (4.3.0.0), `picard`, `snpEff`, `BEDOPS`, and R packages `ggplot2`,
 `readxl`, `openxlsx`, `reshape2`, `wordcloud`, `RColorBrewer`.
 
-## Known limitations
-
-- `GATK.md`'s merged-replicate steps 13–17 have inconsistent intermediate
-  file names across steps (e.g. step 13 writes `raw_snps.vcf`, but step 14
-  reads `raw_snps979899.vcf`) — likely commands from the two replicate
-  groups (`94`/`95`/`96` vs. `97`/`98`/`99`) were interleaved when this was
-  written up. Treat the commands as a reference for parameters/thresholds
-  rather than a literally copy-pasteable script until the file names are
-  reconciled.
-- The doc-to-doc links originally pointed at a numbered-folder layout
-  (`02_alignment_STAR/`, `03_variant_calling_GATK/`, `04_visualization_R/`)
-  that doesn't exist in this repo; `04_visualization_R/plots.R` in
-  particular is referenced from `GATK.md` but was never added.
-- There is no script or documentation in this repo for the step between
-  `annotatedSites*.bed` and the summary Excel workbooks the R scripts
-  consume — i.e., the actual RNA-editing site filtering/curation logic
-  (e.g. selecting A-to-G/T-to-C conversions, coverage or frequency
-  thresholds, functional-annotation curation) isn't captured in code here.
