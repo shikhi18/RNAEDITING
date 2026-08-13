@@ -1,34 +1,103 @@
-# RNA Editing Analysis — *Microbotryum*
+# Codon Optimality and Structural Position Analysis
 
-Scripts and pipeline documentation for an RNA-editing study in *Microbotryum
-intermedium* (anther-smut fungus), covering RNA-seq processing, GATK-based
-variant calling, and the R scripts used to generate the paper/thesis figures.
+Scripts used to test (1) whether A-to-I RNA-editing sites shift codons toward
+faster/more-common or slower/rarer synonymous codons, and (2) where
+recurring nonsynonymous editing sites fall relative to known protein
+domains, topology, and disordered regions, for *Microbotryum intermedium*
+(MI), *M. lychnidis-dioicae* (MVLG), and *M. superbum* (MvSup).
 
-Sample groups referenced in the pipeline docs: single-sample runs (e.g.
-sample `94`) and merged-replicate runs (`94`/`95`/`96` and `97`/`98`/`99`).
-Figure scripts reference multiple developmental/life-cycle stages
-(`p1A1`, `p1A2`, `6P`, `6D`, `MIA1`, `MIA2`, and a `Mitate`/infection stage).
+This accompanies the corresponding Methods write-up ("Methods: Codon
+Optimality and Structural Position Analysis of A-to-I Editing Sites").
 
-## Repository contents
+## Requirements
 
-This repo is a flat collection of pipeline-step write-ups and the R scripts
-used for figures — it is **not** organized into numbered subfolders, even
-though some of the docs below cross-reference folder names like
-`02_alignment_STAR/`. Those references are historical and don't correspond
-to real paths in this repo; use the file list below instead.
+```
+pip install openpyxl requests
+```
 
-| File | Purpose |
-|---|---|
-| [`Quality Trimming & Adapter Removal (fastp).md`](Quality%20Trimming%20%26%20Adapter%20Removal%20%28fastp%29.md) | Step 1 — read trimming/QC with `fastp` |
-| [`fastp codes.odt`](fastp%20codes.odt) | Raw terminal transcript of the actual `fastp` + STAR indexing/alignment commands run, with real output stats |
-| [`Genome Indexing & Alignment (STAR).md`](Genome%20Indexing%20%26%20Alignment%20%28STAR%29.md) | Step 2 — GFF3→GTF conversion, STAR genome indexing, and alignment |
-| [`GATK.md`](GATK.md) | Step 3 — duplicate marking, `SplitNCigarReads`, `HaplotypeCaller`, hard filtering, `snpEff` annotation, and BED conversion via BEDOPS |
-| [`Fig9ACODE(stackplot).R`](Fig9ACODE%28stackplot%29.R) | Figure 9A — stacked bar plot of editing-site functional categories by stage |
-| [`FIG 9B-RCODE.R`](FIG%209B-RCODE.R) | Figure 9B — bar plot of amino-acid substitution frequency by species/haploid group |
-| [`FIG10B-RCODE.R`](FIG10B-RCODE.R) | Figure 10B — bar plot of `log2FoldChange` by gene function |
-| [`MVLG_MILATE_UNIQUE GENES_stage_wordcloud.R`](MVLG_MILATE_UNIQUE%20GENES_stage_wordcloud.R) | Word cloud of MVLG genes uniquely edited in the Mitate stage, by functional category |
-| [`MvSup Common Genes Word Cloud Plot.R`](MvSup%20Common%20Genes%20Word%20Cloud%20Plot.R) | Word cloud of MvSup genes common to all four stages, by functional category |
-| [`hap1-RCODE.R`](hap1-RCODE.R) | Haplotype 1 (`fig1ef`) bar plot of amino-acid substitution frequency, faceted by haploid group |
+Python 3.8+. No other third-party dependencies (FASTA/GFF3/BED/VCF parsing
+is done with the standard library in `codon_utils.py`).
 
+## Pipeline overview
 
+| Script | Purpose | Methods section |
+|---|---|---|
+| `codon_utils.py` | Shared library: genetic code, FASTA/GFF3/BED parsing, CDS splicing, SnapGene `.dna` parser, RSCU calculation, SnpEff ANN-field parsing | — |
+| `01_wobble_position_check.py` | Confirms synonymous edits fall at the 3rd (wobble) codon position | A.3 |
+| `02_build_rscu_table.py` | Builds a genome-wide codon usage (RSCU) table + per-transcript CDS sequences | A.4 |
+| `03_extract_codon_changes.py` | Extracts exact ref/alt codons at synonymous sites, classifies direction of RSCU change, cross-validates against SnpEff's HGVS.p (MI, MVLG) | A.5, A.6 |
+| `03b_extract_codon_changes_mvsup.py` | Same as above but for M. superbum, using genomic-position mapping instead of the (locally-numbered, unreliable) HGVS.c position in that species' SnpEff tables | A.7 |
+| `04_identify_recurring_nonsynonymous_sites.py` | Finds nonsynonymous sites detected independently in 2+ conditions | B.3 |
+| `05_fetch_domain_annotations.py` | Retrieves Pfam/PROSITE/PANTHER/Gene3D/SuperFamily/Phobius/TMHMM/disorder annotations for a transcript from Ensembl (+ UniProt cross-reference) | B.4 |
 
+## Typical run (M. lychnidis-dioicae example)
+
+```bash
+# 1. Confirm wobble-position bias (no reference needed, just the VCFs)
+python 01_wobble_position_check.py \
+    "p1A1"=raw_snpsp1A1-filtered.ann.vcf \
+    "p1A2"=raw_snpsp1A2-filtered.ann.vcf \
+    "Mated"=raw_snpsmated-filtered.ann.vcf
+
+# 2. Build the genome-wide codon usage table (splices CDS from genome + GFF3)
+python 02_build_rscu_table.py --mode genome \
+    --fasta MVLG.genome.fa --annotation MVLG.gff3 --format gff3 \
+    --out mvlg_rscu.pkl
+
+# 3. Extract + validate exact codon changes, classify fast/slow direction
+python 03_extract_codon_changes.py \
+    --rscu mvlg_rscu.pkl \
+    --vcf "p1A1"=raw_snpsp1A1-filtered.ann.vcf \
+    --vcf "p1A2"=raw_snpsp1A2-filtered.ann.vcf \
+    --vcf "Mated"=raw_snpsmated-filtered.ann.vcf \
+    --out mvlg_codon_changes.pkl
+
+# 4. Find recurring nonsynonymous sites for structural follow-up
+python 04_identify_recurring_nonsynonymous_sites.py \
+    "p1A1"=raw_snpsp1A1-filtered.ann.vcf \
+    "p1A2"=raw_snpsp1A2-filtered.ann.vcf \
+    "Mated"=raw_snpsmated-filtered.ann.vcf
+
+# 5. Pull domain/topology context for the strongest candidate genes
+python 05_fetch_domain_annotations.py MVLG_00116T0 MVLG_02820T0 MVLG_06756T0
+```
+
+For M. intermedium, run step 2 with `--mode cdna --fasta MI.cdna.all.fa`
+(a pre-spliced reference is used directly, since it's already indexed by
+the same transcript IDs SnpEff reports).
+
+For M. superbum, run step 2 with `--mode genome --format bed
+--save-tx-info mvsup_tx_info.pkl`, then use
+`03b_extract_codon_changes_mvsup.py` instead of `03_...py` — see the
+docstring at the top of that script for why (M. superbum's SnpEff
+Codon_Change field uses a non-standard, per-CDS-segment-local position
+numbering that does not match the full spliced transcript, discovered via
+the HGVS.p cross-validation step failing for the majority of sites until
+this was worked around).
+
+## Key validation checks performed
+
+- **Every extracted codon is cross-checked against SnpEff's own HGVS.p
+  amino-acid call** for the same site before being reported. Sites that
+  don't reproduce SnpEff's own translation are dropped rather than kept.
+  For MI and MVLG this passed with 0 mismatches out of 1,199 and 6,911
+  sites checked respectively.
+- **RSCU values were spot-checked by hand** against raw codon counts.
+- **The RSCU table was rebuilt using only canonical transcripts** (excluding
+  alternative isoforms) to rule out double-counting bias; results were
+  unchanged.
+- **Strand handling was confirmed directly** using known + and − strand
+  genomic examples and checking they resolved to the expected
+  transcript-relative HGVS.c.
+
+## Notes on M. superbum
+
+There is no public reference genome/annotation for M. superbum. This
+analysis used, in order of preference: (1) ~24,500 individual pre-extracted
+per-transcript coding sequences in SnapGene `.dna` format (decoded directly
+by `codon_utils.parse_snapgene_dna`), cross-validated against (2) the
+source genome FASTA + the full AUGUSTUS gene-model BED file, spliced
+in-house. Both methods were confirmed to produce byte-identical sequences
+for the genes checked. See Methods section A.7 for the coordinate-system
+issue found in the associated SnpEff annotation tables and how it was
+resolved.
