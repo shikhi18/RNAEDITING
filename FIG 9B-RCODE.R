@@ -3,8 +3,8 @@ library(reshape2)
 library(ggplot2)
 
 # Load the Excel file
-file_path <- "~/Desktop/PLOS_PATHOGENS_NEW2.xlsx"
-data2 <- read.xlsx(file_path, sheet = "UPDATED FIG8B-MVLG COMMON")
+file_path <- "~/Desktop/NEW2.xlsx"
+data2 <- read.xlsx(file_path, sheet = "UPDATED MVLG COMMON")
 
 # Extract the Functions column
 function_data <- data2$Functions
