@@ -1,4 +1,4 @@
-# RNA Editing Analysis — *Microbotryum intermedium*
+# RNA Editing Analysis — *Microbotryum*
 
 Scripts and pipeline documentation for an RNA-editing study in *Microbotryum
 intermedium* (anther-smut fungus), covering RNA-seq processing, GATK-based
